@@ -14,17 +14,24 @@
  
  <script>
     // 这个方法用来储存每个文本对象
-    function TextContent(x, y, textContent, color) {
+    function TextContent(x, y, textContent, maxLenght,fontName,fontSize,color) {
+    	
       this.x = x;//canvas横向定位左标
       this.y = y;//canvas纵向定位左标
-      this.color = color;//文本颜色
+      this.color ="black";//文本颜色
+      if(color)
+      	this.color =color;
       this.textContent=textContent;//文本内容
       this.isSelected = false;//是否被选中
       this.maxLenght=10;//文本最大长度
-      this.textAreaWidth=0;
-      this.textAreaHeight=0;
-      this.fontName="serif";
-      this.fontSize=10;
+      this.textAreaWidth=0;//文本总宽度
+      this.textAreaHeight=0;//文本总高度
+      this.fontName="serif";//字体名称
+      if(fontName)
+      	this.fontName=fontName;
+      this.fontSize=10;//字体大小
+      if(fontSize)
+      	this.fontSize=fontSize;
       this.font=this.fontSize.toString()+"px "+this.fontName;//文本字体定义
     }
 
@@ -47,15 +54,46 @@
  		//添加文本内容至要绘制的数组中
     function addTextContent() {
     	
+    	textModels=[];
+    	//遍历文本内容集合区域
     	$("#textList div").each(function(){
-    		//alert($(this).html());
+    		var txtcontent=$(this).find("[name='txtcontent']").val();//收件人姓名
+    		var x_axis=$(this).find("[name='x_axis']").val();//横坐标
+    		var y_axis=$(this).find("[name='y_axis']").val();//纵坐标
+    		var maxwidth=$(this).find("[name='maxwidth']").val();//文本最大宽度
+    		var fontname=$(this).find("[name='fontname']").val();//字体样式
+    		var fontsize=$(this).find("[name='fontsize']").val();//字体大小
     		//todo:资料验证
-    		alert($(this).find("[name='txtcontent']").val());
     		
+    		//加入待绘制文本对列
+    		var textContent = new TextContent(x_axis,y_axis,txtcontent,maxwidth,fontname,fontsize,"red");
     		
+    		//计算文本需要的宽度及高度
+    		context2d.font=fontsize.toString()+"px "+fontname;
+    		var textRealWidth=context2d.measureText(txtcontent).width;
+    		var textAreaWidth=maxwidth;
+    		var textAreaHeight=fontsize;
+    		if(textRealWidth<maxwidth)
+    		{
+    			textAreaWidth=textRealWidth;
+    		}
+    		else
+    		{
+    			var linewrapnum=Math.floor(textRealWidth/maxwidth);
+    			textAreaHeight=fontsize*linewrapnum;
+    		}
+    		
+    		textContent.textAreaWidth=textAreaWidth;
+    		textContent.textAreaHeight=textAreaHeight;
+    		
+    		// 把它保存在数组中
+      	textModels.push(textContent);
     		
   		});
+  		// 重新绘制画布
+      drawtextModels();
     	
+    	/*
       // 为圆圈计算一个随机大小和位置
       var radius = randomFromTo(10, 60);
       var x = randomFromTo(0, canvas.width);
@@ -69,7 +107,7 @@
       textModels.push(textContent);
       // 重新绘制画布
       drawtextModels();
-
+			*/
     }
  
  		// 重新绘制画布中的文本对象集合
@@ -80,16 +118,14 @@
       // 遍历所有文本内容
       for(var i=0; i<textModels.length; i++) {
         var textModel = textModels[i];
-        // 绘制文本
+        //绘制文本
         //画布透明度
         context2d.globalAlpha = 1;
-        
-        //context2d.fillStyle = textContent.color;
-        
+        context2d.font=textModel.font;
+        context2d.fillStyle=textModel.color;
+
         if (textModel.isSelected) {
-        	
         	//绘制选中文本的外框线
-          //textModel.font = "15px serif";
 	        context2d.strokeStyle = "red";
 	        context2d.lineWidth=1;  
 	        context2d.font=textModel.font;
@@ -99,7 +135,7 @@
         }
         
       	//context2d.fillText(textContent.textContent,textContent.x, textContent.y,200);
-      	writeTextOnCanvas(context2d,20,20,textModel.textContent,textModel.x, textModel.y);
+      	writeTextOnCanvas(context2d,textModel.fontSize,textModel.textAreaWidth,textModel.textContent,textModel.x, textModel.y);
       }
     }
  
@@ -115,27 +151,27 @@
  
       // 查找被单击的文本
       for(var i=textModels.length-1; i>=0; i--) {
-        var textContent = textModels[i];
+        var textModel = textModels[i];
         //使用勾股定理计算这个点与圆心之间的距离
-        //var distanceFromCenter = Math.sqrt(textContent.x + textContent.y)
+        //var distanceFromCenter = Math.sqrt(textModel.x + textModel.y)
         // 判断这个点是否在圆圈中
-        //if (distanceFromCenter <= textContent.radius)
+        //if (distanceFromCenter <= textModel.radius)
         //alert(clickX);858
-        //alert(textContent.x);32
+        //alert(textModel.x);32
         //测量文本宽度
-        //alert(context2d.measureText(textContent.textContent.substr(0, 1)).width);
+        //alert(context2d.measureText(textModel.textModel.substr(0, 1)).width);
         
         //判断鼠标点击坐标内是否有文本对象
-        if(textContent.x<=clickX&&clickX<=textContent.x+200 && textContent.y-15<=clickY&&clickY<=textContent.y)
+        if(textModel.x<=clickX&&clickX<=textModel.x+200 && textModel.y-15<=clickY&&clickY<=textModel.y)
         {
           // 清除之前选择的圆圈
           if (previousSelectedText != null)
           {
           	previousSelectedText.isSelected = false;
           }
-          previousSelectedText = textContent;
+          previousSelectedText = textModel;
           //选择新文本
-          textContent.isSelected = true;
+          textModel.isSelected = true;
           // 使圆圈允许拖拽
           isDragging = true;
           
@@ -148,7 +184,7 @@
         else
         {
         	//选择新圆圈
-          textContent.isSelected = false;
+          textModel.isSelected = false;
         }
         
       }
@@ -286,25 +322,25 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
   
 	  <div>
 		  <label>收 件 人</label>
-		  <input name="txtcontent" placeholder="收件人姓名" style="width: 400px;"/>
+		  <input name="txtcontent" placeholder="收件人姓名" value="收件人姓名" style="width: 400px;"/>
 		  <label>横坐标</label>
-		  <input name="x-axis" placeholder="横坐标" />
+		  <input name="x_axis" placeholder="横坐标" value="50"/>
 		  <label>纵坐标</label>
-		  <input name="y-axis" placeholder="纵坐标" />
+		  <input name="y_axis" placeholder="纵坐标" value="80"/>
 		  <label>宽度</label>
-		  <input name="maxwidth" placeholder="文本最大宽度" />
+		  <input name="maxwidth" placeholder="文本最大宽度" value="50"/>
 		  <label>字体样式</label>
-		  <select name="fontstyle"> 
+		  <select name="fontname"> 
 				<option value="SimSun">宋体</option> 
 				<option value="SimHei">黑体</option> 
-				<option value="Microsoft YaHei">微软雅黑</option>
+				<option value="Microsoft YaHei" selected="true">微软雅黑</option>
 				<option value="Microsoft JhengHei">微软正黑体</option>
 				<option value="NSimSun">新宋体</option>
 				<option value="FangSong">仿宋</option>
 			</select> 
 			<label>字体大小</label>
-		  <select name="fontstyle"> 
-				<option value="12">12</option> 
+		  <select name="fontsize"> 
+				<option value="12" selected="true">12</option> 
 				<option value="14">14</option> 
 				<option value="16">16</option> 
 				<option value="18">18</option> 
@@ -314,25 +350,25 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
 	  <br>
 	  <div>
 		  <label>收货地址</label>
-		  <input name="txtcontent" placeholder="收件人地址" style="width: 400px;"/>
+		  <input name="txtcontent" placeholder="收件人地址" value="北京市西城区新街口外大街28号院 15号楼 100088" style="width: 400px;"/>
 		  <label>横坐标</label>
-		  <input name="x-axis" placeholder="横坐标" />
+		  <input name="x_axis" placeholder="横坐标" value="50" />
 		  <label>纵坐标</label>
-		  <input name="y-axis" placeholder="纵坐标" />
+		  <input name="y_axis" placeholder="纵坐标" value="150"/>
 		  <label>宽度</label>
-		  <input name="maxwidth" placeholder="文本最大宽度" />
+		  <input name="maxwidth" placeholder="文本最大宽度" value="100"/>
 		  <label>字体样式</label>
-		  <select name="fontstyle"> 
+		  <select name="fontname"> 
 				<option value="SimSun">宋体</option> 
 				<option value="SimHei">黑体</option> 
-				<option value="Microsoft YaHei">微软雅黑</option>
+				<option value="Microsoft YaHei" selected="true">微软雅黑</option>
 				<option value="Microsoft JhengHei">微软正黑体</option>
 				<option value="NSimSun">新宋体</option>
 				<option value="FangSong">仿宋</option>
 			</select> 
 		  <label>字体大小</label>
-		  <select name="fontstyle"> 
-				<option value="12">12</option> 
+		  <select name="fontsize"> 
+				<option value="12" selected="true">12</option> 
 				<option value="14">14</option> 
 				<option value="16">16</option> 
 				<option value="18">18</option> 
