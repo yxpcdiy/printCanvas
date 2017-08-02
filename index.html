@@ -4,302 +4,15 @@
   <meta charset="UTF-8">
   <title>hangge.com</title>
   <script src="js/jQuery-2.1.4.min.js"></script>
+  <script src="js/canvasopration.js"></script>
+  <script src="js/jquery.printPage.js"></script>
+  <script src="js/qrcode.js"></script>
 	<style>
 	     canvas {
 	       cursor: pointer;
 	       border: 1px solid black;
 	     }
 	</style>
- 
- 
- <script>
-    // 这个方法用来储存每个文本对象
-    function TextContent(x, y, textContent, maxLenght,fontName,fontSize,color) {
-    	
-      this.x = x;//canvas横向定位左标
-      this.y = y;//canvas纵向定位左标
-      this.color ="black";//文本颜色
-      if(color)
-      	this.color =color;
-      this.textContent=textContent;//文本内容
-      this.isSelected = false;//是否被选中
-      this.maxLenght=10;//文本最大长度
-      this.textAreaWidth=0;//文本总宽度
-      this.textAreaHeight=0;//文本总高度
-      this.fontName="serif";//字体名称
-      if(fontName)
-      	this.fontName=fontName;
-      this.fontSize=10;//字体大小
-      if(fontSize)
-      	this.fontSize=fontSize;
-      this.font=this.fontSize.toString()+"px "+this.fontName;//文本字体定义
-    }
-
-    // 保存画布上所有的文本对象集合
-    var textModels = [];
-    var canvas;//canvas对象
-    var context2d;//canvas2d绘图上下文
- 		var previousSelectedText;//被选中的文本对象
- 		
- 		//注册canvas事件
-    window.onload = function() {
-      canvas = document.getElementById("canvas");
-      context2d = canvas.getContext("2d");
-      canvas.onmousedown = canvasClick;
-      canvas.onmouseup = stopDragging;
-      canvas.onmouseout = stopDragging;
-      canvas.onmousemove = dragCircle;
-    };
- 
- 		//添加文本内容至要绘制的数组中
-    function addTextContent() {
-    	
-    	textModels=[];
-    	//遍历文本内容集合区域
-    	$("#textList div").each(function(){
-    		var txtcontent=$(this).find("[name='txtcontent']").val();//收件人姓名
-    		var x_axis=$(this).find("[name='x_axis']").val();//横坐标
-    		var y_axis=$(this).find("[name='y_axis']").val();//纵坐标
-    		var maxwidth=$(this).find("[name='maxwidth']").val();//文本最大宽度
-    		var fontname=$(this).find("[name='fontname']").val();//字体样式
-    		var fontsize=$(this).find("[name='fontsize']").val();//字体大小
-    		//todo:资料验证
-    		
-    		//加入待绘制文本对列
-    		var textContent = new TextContent(x_axis,y_axis,txtcontent,maxwidth,fontname,fontsize,"red");
-    		
-    		//计算文本需要的宽度及高度
-    		context2d.font=fontsize.toString()+"px "+fontname;
-    		var textRealWidth=context2d.measureText(txtcontent).width;
-    		var textAreaWidth=maxwidth;
-    		var textAreaHeight=fontsize;
-    		if(textRealWidth<maxwidth)
-    		{
-    			textAreaWidth=textRealWidth;
-    		}
-    		else
-    		{
-    			var linewrapnum=Math.floor(textRealWidth/maxwidth);
-    			textAreaHeight=fontsize*linewrapnum;
-    		}
-    		
-    		textContent.textAreaWidth=textAreaWidth;
-    		textContent.textAreaHeight=textAreaHeight;
-    		
-    		// 把它保存在数组中
-      	textModels.push(textContent);
-    		
-  		});
-  		// 重新绘制画布
-      drawtextModels();
-    	
-    	/*
-      // 为圆圈计算一个随机大小和位置
-      var radius = randomFromTo(10, 60);
-      var x = randomFromTo(0, canvas.width);
-      var y = randomFromTo(0, canvas.height);
-	    // 为圆圈计算一个随机颜色
-	    var colors = ["green", "blue", "red", "yellow", "magenta", "orange", "brown", "purple", "pink"];
-	    var color = colors[randomFromTo(0, 8)];
-      // 创建一个新圆圈
-      var textContent = new TextContent(x, y, "北京市西城区新街口外大街28号院 15号楼 100088", color);
-      // 把它保存在数组中
-      textModels.push(textContent);
-      // 重新绘制画布
-      drawtextModels();
-			*/
-    }
- 
- 		// 重新绘制画布中的文本对象集合
-    function drawtextModels() {
-      // 清除画布，准备绘制
-      context2d.clearRect(0, 0, canvas.width, canvas.height);
- 
-      // 遍历所有文本内容
-      for(var i=0; i<textModels.length; i++) {
-        var textModel = textModels[i];
-        //绘制文本
-        //画布透明度
-        context2d.globalAlpha = 1;
-        context2d.font=textModel.font;
-        context2d.fillStyle=textModel.color;
-
-        if (textModel.isSelected) {
-        	//绘制选中文本的外框线
-	        context2d.strokeStyle = "red";
-	        context2d.lineWidth=1;  
-	        context2d.font=textModel.font;
-	        //context2d.fillStyle="brown";
-	        context2d.strokeRect(textModel.x-5,(textModel.y-15),context2d.measureText(textModel.textContent).width,(15+5)*3);
-        
-        }
-        
-      	//context2d.fillText(textContent.textContent,textContent.x, textContent.y,200);
-      	writeTextOnCanvas(context2d,textModel.fontSize,textModel.textAreaWidth,textModel.textContent,textModel.x, textModel.y);
-      }
-    }
- 
-    
- 
- 
-
- 
-    function canvasClick(e) {
-      // 取得画布上被单击的点
-      var clickX = e.pageX - canvas.offsetLeft;
-      var clickY = e.pageY - canvas.offsetTop;
- 
-      // 查找被单击的文本
-      for(var i=textModels.length-1; i>=0; i--) {
-        var textModel = textModels[i];
-        //使用勾股定理计算这个点与圆心之间的距离
-        //var distanceFromCenter = Math.sqrt(textModel.x + textModel.y)
-        // 判断这个点是否在圆圈中
-        //if (distanceFromCenter <= textModel.radius)
-        //alert(clickX);858
-        //alert(textModel.x);32
-        //测量文本宽度
-        //alert(context2d.measureText(textModel.textModel.substr(0, 1)).width);
-        
-        //判断鼠标点击坐标内是否有文本对象
-        if(textModel.x<=clickX&&clickX<=textModel.x+200 && textModel.y-15<=clickY&&clickY<=textModel.y)
-        {
-          // 清除之前选择的圆圈
-          if (previousSelectedText != null)
-          {
-          	previousSelectedText.isSelected = false;
-          }
-          previousSelectedText = textModel;
-          //选择新文本
-          textModel.isSelected = true;
-          // 使圆圈允许拖拽
-          isDragging = true;
-          
-          //更新显示
-          drawtextModels();
- 
-          //停止搜索
-          return;
-        }
-        else
-        {
-        	//选择新圆圈
-          textModel.isSelected = false;
-        }
-        
-      }
-      //更新显示
-      drawtextModels();
-    }
- 
- 
-    //在某个范围内生成随机数
-    function randomFromTo(from, to) {
-      return Math.floor(Math.random() * (to - from + 1) + from);
-    }
-    
-    var isDragging = false;
- 
-    function stopDragging() {
-      isDragging = false;
-      previousSelectedText=null;
-      realx=0;
- 			realy=0;
- 			for(var i=textModels.length-1; i>=0; i--) {
-        textModels[i].isSelected = false;
-       }
-
- 			drawtextModels();
-    }
- 
- var realx=0;
- var realy=0;
-    function dragCircle(e) {
-      // 判断圆圈是否开始拖拽
-      if (isDragging == true) {
-        // 判断拖拽对象是否存在
-        if (previousSelectedText != null) {
-          // 取得鼠标位置
-          var x = e.pageX - canvas.offsetLeft;
-          var y = e.pageY - canvas.offsetTop;
-
-if(realx==0||realy==0)
-{
-realx=x-previousSelectedText.x;
-realy=y-previousSelectedText.y;
-}
-//else
-//{
-//	realx=x-previousSelectedText.x-realx;
-//	realy=y-previousSelectedText.y-realy;
-//}
-          // 将圆圈移动到鼠标位置
-          previousSelectedText.x = x-realx;
-          previousSelectedText.y = y-realy;
- 
-         // 更新画布
-         drawtextModels();
-        }
-      }
-     }
-      
-    //清空画布
-    function clearCanvas() {
-      // 去除所有圆圈
-      textModels = [];
-      // 重新绘制画布.
-      drawtextModels();
-    }
-    
- 
-//ctx_2d		getcontext2d("2d") 对象
-//lineheight	段落文本行高
-//bytelength	设置单字节文字一行内的数量
-//text			写入画面的段落文本
-//startleft		开始绘制文本的 x 坐标位置（相对于画布）
-//starttop		开始绘制文本的 y 坐标位置（相对于画布）
-function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, starttop){
-	function getTrueLength(str){//获取字符串的真实长度（字节长度）
-		var len = str.length, truelen = 0;
-		for(var x = 0; x < len; x++){
-			if(str.charCodeAt(x) > 128){
-				truelen += 2;
-			}else{
-				truelen += 1;
-			}
-		}
-		return truelen;
-	}
-	function cutString(str, leng){//按字节长度截取字符串，返回substr截取位置
-		var len = str.length, tlen = len, nlen = 0;
-		for(var x = 0; x < len; x++){
-			if(str.charCodeAt(x) > 128){
-				if(nlen + 2 < leng){
-					nlen += 2;
-				}else{
-					tlen = x;
-					break;
-				}
-			}else{
-				if(nlen + 1 < leng){
-					nlen += 1;
-				}else{
-					tlen = x;
-					break;
-				}
-			}
-		}
-		return tlen;
-	}
-	for(var i = 1; getTrueLength(text) > 0; i++){
-		var tl = cutString(text, bytelength);
-		ctx_2d.fillText(text.substr(0, tl).replace(/^\s+|\s+$/, ""), startleft, (i-1) * lineheight + starttop);
-		text = text.substr(tl);
-	}
-}
-
-
- </script>
 </head>  
 <body>
 
@@ -308,7 +21,7 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
 		  <input id="canvaswidth" placeholder="画布宽度" value="680" />
 		  <label>画布高度</label>
 		  <input id="canvasheight" placeholder="画布高度" value="420" />
-		  <button>设置画布</button>
+		  <button id="setcanvas" onclick="setCanvas()">设置画布</button>
 		  
 	</div>
 	<br>
@@ -320,7 +33,7 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
   </div>
   <div id="textList" style="padding-top: 10px;">
   
-	  <div>
+	  <div data-type="text">
 		  <label>收 件 人</label>
 		  <input name="txtcontent" placeholder="收件人姓名" value="收件人姓名" style="width: 400px;"/>
 		  <label>横坐标</label>
@@ -328,7 +41,7 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
 		  <label>纵坐标</label>
 		  <input name="y_axis" placeholder="纵坐标" value="80"/>
 		  <label>宽度</label>
-		  <input name="maxwidth" placeholder="文本最大宽度" value="50"/>
+		  <input name="maxwidth" placeholder="文本最大宽度" value="60"/>
 		  <label>字体样式</label>
 		  <select name="fontname"> 
 				<option value="SimSun">宋体</option> 
@@ -344,11 +57,11 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
 				<option value="14">14</option> 
 				<option value="16">16</option> 
 				<option value="18">18</option> 
-				<option value="14">20</option> 
+				<option value="20">20</option> 
 			</select> 
 	  </div>
 	  <br>
-	  <div>
+	  <div data-type="text">
 		  <label>收货地址</label>
 		  <input name="txtcontent" placeholder="收件人地址" value="北京市西城区新街口外大街28号院 15号楼 100088" style="width: 400px;"/>
 		  <label>横坐标</label>
@@ -372,10 +85,25 @@ function writeTextOnCanvas(ctx_2d, lineheight, bytelength, text ,startleft, star
 				<option value="14">14</option> 
 				<option value="16">16</option> 
 				<option value="18">18</option> 
-				<option value="14">20</option> 
+				<option value="20">20</option> 
 			</select>
 	  </div>
-  
+	  <br>
+	  <div data-type="qrcode">
+	  	<label>二 维 码</label>
+		  <input name="txtcontent" placeholder="二维码内容" value="http://www.baidu.com" style="width: 400px;"/>
+		  <label>横坐标</label>
+		  <input name="x_axis" placeholder="横坐标" value="300" />
+		  <label>纵坐标</label>
+		  <input name="y_axis" placeholder="纵坐标" value="10"/>
+		  <label>宽度</label>
+		  <input name="imgwidth" placeholder="图象宽度" value="100"/>
+		  <label>高度</label>
+		  <input name="imgheight" placeholder="图象高度" value="100"/>
+	  </div>
+  	
   </div>
+  
+  <div  id="qrcodeW" style="display: none;"></div>
 </body>
 </html>
